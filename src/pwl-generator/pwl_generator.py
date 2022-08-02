@@ -7,6 +7,7 @@ from typing import List
 def parse_args() -> argparse.Namespace:
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument("--length", required=False, default=1000)
+    argument_parser.add_argument("--period", required=False ,default=5e-9)
     return argument_parser.parse_args()
 
 
@@ -27,8 +28,8 @@ def generate_pwl(
         bitstream (List[int]): bitstream to be parsed
         t_0 (int): signal base period
         t_r (int): lohi/hilo transition period (note: t_r << t_0 for a square target signal)
-        v_u (float): tension for high
-        v_d (float): tension for low
+        v_u (float): voltage for high
+        v_d (float): voltage for low
 
     Returns:
         str: string of type "t0 v0 t1 v1 ... tn vn"
@@ -54,7 +55,7 @@ def get_pwl_source(source_name: str, pwl: str) -> str:
 
 def main() -> None:
     args = parse_args()
-    length = int(args.length)
+    length, period = list(map(int, [args.length, args.period]))
     inputs = [
         "a_in_0",
         "a_in_1",
@@ -69,7 +70,7 @@ def main() -> None:
     for _ in inputs:
         base_bitstreams.append(generate_base_bitstream(length=length))
     pwls = list(
-        map(partial(generate_pwl, t_0=5e-9, t_r=10e-12, v_u=1, v_d=0), base_bitstreams)
+        map(partial(generate_pwl, t_0=period, t_r=10e-12, v_u=1, v_d=0), base_bitstreams)
     )
     sources = list(map(get_pwl_source, inputs, pwls))
 
