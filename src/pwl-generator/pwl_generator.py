@@ -99,7 +99,7 @@ def montecarlo(length: int, period: int) -> List[int]:
     return sources
 
 
-def truth_table(bits: int, period: int):
+def truth_table(bits: int, period: int) -> List[int]:
     """
     Generates piecewise linear sources based on truth-table of the inputs number
 
@@ -116,31 +116,31 @@ def truth_table(bits: int, period: int):
     sources = []
 
     for i in range(bits):
+        bit = 0
+        control = 0
+        bitstream.clear()
         for _ in range(2**bits):
             if control == 2**i:
                 bit = swap(bit)
                 control = 0
             bitstream.append(bit)
             control += 1
-        print(f"in_{i} {bitstream}")
         pwl = generate_pwl(bitstream=bitstream, t_0=period, t_r=10e-12, v_u=1, v_d=0)
         sources.append(get_pwl_source(source_name=f"in_{i}", pwl=pwl))
-        bitstream.clear()
-        bit = 0
-        control = 0
+        print(f"in_{i} {bitstream}")
 
     return sources
 
 
 def main() -> None:
     args = parse_args()
-    length, period = list(map(int, [args.length, args.period]))
+    length, period, bits = list(map(int, [args.length, args.period, args.bits]))
 
     if args.mode == "montecarlo":
         sources = montecarlo(length=length, period=period)
 
     elif args.mode == "truth-table":
-        sources = truth_table(bits=int(args.bits), period=period)
+        sources = truth_table(bits=bits, period=period)
 
     with open("pwl_sources.txt", "w") as f:
         f.writelines(sources)
