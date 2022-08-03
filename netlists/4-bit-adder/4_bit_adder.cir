@@ -1,5 +1,4 @@
 * 4-bits-adder circuit netlist
-* vitor eduardo schuh
 
 .include 45nm_HP.pm
 .param lmin = 50n
