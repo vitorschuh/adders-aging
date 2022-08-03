@@ -1,4 +1,4 @@
-* 4-bits-adder circuit netlist
+* xor-3 netlist
 * vitor eduardo schuh
 
 .include 45nm_HP.pm
