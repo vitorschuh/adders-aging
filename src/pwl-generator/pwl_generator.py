@@ -6,8 +6,12 @@ from typing import List
 
 def parse_args() -> argparse.Namespace:
     argument_parser = argparse.ArgumentParser()
+    argument_parser.add_argument(
+        "--mode", required=True, choices=["montecarlo", "truth-table"]
+    )
     argument_parser.add_argument("--length", required=False, default=1000)
-    argument_parser.add_argument("--period", required=False ,default=5e-9)
+    argument_parser.add_argument("--period", required=False, default=5e-9)
+    argument_parser.add_argument("--bits", required=False, default=2)
     return argument_parser.parse_args()
 
 
@@ -24,7 +28,7 @@ def generate_pwl(
     """
     Generates a string of time-voltage pairs from a binary bitstream
 
-    Args: 
+    Args:
         bitstream (List[int]): bitstream to be parsed
         t_0 (int): signal base period
         t_r (int): lohi/hilo transition period (note: t_r << t_0 for a square target signal)
@@ -53,9 +57,21 @@ def get_pwl_source(source_name: str, pwl: str) -> str:
     return f"v_{source_name} {source_name} 0 pwl({pwl})\n"
 
 
-def main() -> None:
-    args = parse_args()
-    length, period = list(map(int, [args.length, args.period]))
+def swap(bit: int) -> int:
+    return 1 if bit == 0 else 0
+
+
+def montecarlo(length: int, period: int) -> List[int]:
+    """
+    Generates piecewise linear sources dynamically from a montecarlo simulation
+
+    Args:
+        length (int): limit of montecarlo simulation
+        period (int): signal base period
+
+    Returns:
+        List[int]: 8-source set with highs and lows randomly generated
+    """
     inputs = [
         "a_in_0",
         "a_in_1",
@@ -70,14 +86,63 @@ def main() -> None:
     for _ in inputs:
         base_bitstreams.append(generate_base_bitstream(length=length))
     pwls = list(
-        map(partial(generate_pwl, t_0=period, t_r=10e-12, v_u=1, v_d=0), base_bitstreams)
+        map(
+            partial(generate_pwl, t_0=period, t_r=10e-12, v_u=1, v_d=0),
+            base_bitstreams,
+        )
     )
     sources = list(map(get_pwl_source, inputs, pwls))
 
     for input, bitstream in zip(inputs, base_bitstreams):
         print(input, bitstream)
 
-    with open("sources.txt", "w") as f:
+    return sources
+
+
+def truth_table(bits: int, period: int):
+    """
+    Generates piecewise linear sources based on truth-table of the inputs number
+
+    Args:
+        bits (int): gate under test input bits
+        period (int): signal base period
+
+    Returns:
+        List[int]: n-source set with highs and lows for all input combinations
+    """
+    bit = 0
+    control = 0
+    bitstream = []
+    sources = []
+
+    for i in range(bits):
+        for _ in range(2**bits):
+            if control == 2**i:
+                bit = swap(bit)
+                control = 0
+            bitstream.append(bit)
+            control += 1
+        print(f"in_{i} {bitstream}")
+        pwl = generate_pwl(bitstream=bitstream, t_0=period, t_r=10e-12, v_u=1, v_d=0)
+        sources.append(get_pwl_source(source_name=f"in_{i}", pwl=pwl))
+        bitstream.clear()
+        bit = 0
+        control = 0
+
+    return sources
+
+
+def main() -> None:
+    args = parse_args()
+    length, period = list(map(int, [args.length, args.period]))
+
+    if args.mode == "montecarlo":
+        sources = montecarlo(length=length, period=period)
+
+    elif args.mode == "truth-table":
+        sources = truth_table(bits=int(args.bits), period=period)
+
+    with open("pwl_sources.txt", "w") as f:
         f.writelines(sources)
 
 
