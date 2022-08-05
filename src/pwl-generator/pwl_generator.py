@@ -134,13 +134,18 @@ def truth_table(bits: int, period: int) -> List[int]:
 
 def main() -> None:
     args = parse_args()
-    length, period, bits = list(map(int, [args.length, args.period, args.bits]))
 
     if args.mode == "montecarlo":
-        sources = montecarlo(length=length, period=period)
+        sources = montecarlo(
+            length=int(args.length),
+            period=float(args.period)
+        )
 
     elif args.mode == "truth-table":
-        sources = truth_table(bits=bits, period=period)
+        sources = truth_table(
+            bits=int(args.bits),
+            period=float(args.period)
+        )
 
     with open("pwl_sources.txt", "w") as f:
         f.writelines(sources)
