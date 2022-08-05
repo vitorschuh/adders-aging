@@ -1,4 +1,4 @@
-* nand-4 netlist
+* and-4 netlist
 
 * the idea here was to use standard cells and boolean algebra to build an and-4 logic gate
 * the a*b*c*d signal is generated from the boolean equation (a*b)*(c*d)
