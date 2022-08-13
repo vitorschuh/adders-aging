@@ -10,7 +10,7 @@ def parse_args() -> argparse.Namespace:
         "--mode", required=True, choices=["montecarlo", "truth-table"]
     )
     argument_parser.add_argument("--length", required=False, default=1000)
-    argument_parser.add_argument("--period", required=False, default=5e-9)
+    argument_parser.add_argument("--period", required=False, default=10e-9)
     argument_parser.add_argument("--bits", required=False, default=2)
     return argument_parser.parse_args()
 
@@ -87,7 +87,7 @@ def montecarlo(length: int, period: int) -> List[int]:
         base_bitstreams.append(generate_base_bitstream(length=length))
     pwls = list(
         map(
-            partial(generate_pwl, t_0=period, t_r=10e-12, v_u=1, v_d=0),
+            partial(generate_pwl, t_0=period, t_r=1e-10, v_u=1, v_d=0),
             base_bitstreams,
         )
     )
@@ -125,7 +125,7 @@ def truth_table(bits: int, period: int) -> List[int]:
                 control = 0
             bitstream.append(bit)
             control += 1
-        pwl = generate_pwl(bitstream=bitstream, t_0=period, t_r=10e-12, v_u=1, v_d=0)
+        pwl = generate_pwl(bitstream=bitstream, t_0=period, t_r=1e-10, v_u=1, v_d=0)
         sources.append(get_pwl_source(source_name=f"in_{i}", pwl=pwl))
         print(f"in_{i} {bitstream}")
 
