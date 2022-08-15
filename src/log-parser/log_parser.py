@@ -8,13 +8,16 @@ from constants import (
     SEQUENTIAL_RAW_PATH,
     SEQUENTIAL_PROCESSED_PATH,
     SEQUENTIAL_INTERFACE_SIGNALS,
+    SIZING_RAW_PATH,
+    SIZING_PROCESSED_PATH,
+    SIZING_INTERFACE_SIGNALS,
 )
 
 
 def parse_args() -> argparse.Namespace:
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument(
-        "--target", required=True, choices=["sequential", "lookahead"]
+        "--target", required=True, choices=["sequential", "lookahead", "sizing"]
     )
     return argument_parser.parse_args()
 
@@ -46,20 +49,20 @@ def parse_logs(raw_path: str, processed_path: str, target: str) -> None:
 if __name__ == "__main__":
     args = parse_args()
     raw_path = (
-        SEQUENTIAL_RAW_PATH if args.target == "sequential" else LOOKAHEAD_RAW_PATH
+        SEQUENTIAL_RAW_PATH if args.target == "sequential"
+        else LOOKAHEAD_RAW_PATH if args.target == "lookahead"
+        else SIZING_RAW_PATH
     )
     processed_path = (
-        SEQUENTIAL_PROCESSED_PATH
-        if args.target == "sequential"
-        else LOOKAHEAD_PROCESSED_PATH
+        SEQUENTIAL_PROCESSED_PATH if args.target == "sequential"
+        else LOOKAHEAD_PROCESSED_PATH if args.target == "lookahead"
+        else SIZING_PROCESSED_PATH
     )
     signals = (
-        SEQUENTIAL_INTERFACE_SIGNALS
-        if args.target == "sequential"
-        else LOOKAHEAD_INTERFACE_SIGNALS
+        SEQUENTIAL_INTERFACE_SIGNALS if args.target == "sequential"
+        else LOOKAHEAD_INTERFACE_SIGNALS if args.target == "lookahead"
+        else SIZING_INTERFACE_SIGNALS
     )
 
     for signal in signals:
-        parse_logs(
-            raw_path=raw_path, processed_path=processed_path, target=signal
-        )
+        parse_logs(raw_path=raw_path, processed_path=processed_path, target=signal)
