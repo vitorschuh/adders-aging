@@ -1,0 +1,165 @@
+.include models/45nm_HP.model
+.param lmin = 45n
+.param wn = '3.2*lmin'
+.param wp = '2.5*wn'
+.param wn_x4 = '4*wn'
+.param wp_x4 = '4*wp'
+
+.subckt inv a not_a vdd vss
+minv000 not_a a vdd vdd pmos l=lmin w=wp
+minv001 not_a a vss vss nmos l=lmin w=wn
+.ends inv
+
+.subckt inv_x4 a not_a vdd vss
+minv000 not_a a vdd vdd pmos l=lmin w=wp_x4
+minv001 not_a a vss vss nmos l=lmin w=wn_x4
+.ends inv_x4
+
+.subckt nor_2 a b vdd vss out
+mnor000 pu a vdd vdd pmos l=lmin w=wp
+mnor001 out b pu pu pmos l=lmin w=wp
+mnor002 out a vss vss nmos l=lmin w=wn
+mnor003 out b vss vss nmos l=lmin w=wn
+.ends nor_2
+
+.subckt nand_2 a b vdd vss out
+mnand000 out a vdd vdd pmos l=lmin w=wp
+mnand001 out b vdd vdd pmos l=lmin w=wp
+mnand002 out a pd pd nmos l=lmin w=wn
+mnand003 pd b vss vss nmos l=lmin w=wn
+.ends nand_2
+
+.subckt xor_2 a b vdd vss out
+mxor000 not_a a vdd vdd pmos l=lmin w=wp
+mxor001 not_a a vss vss nmos l=lmin w=wn
+mxor002 not_b b vdd vdd pmos l=lmin w=wp
+mxor003 not_b b vss vss nmos l=lmin w=wn
+mxor004 pu_l not_b vdd vdd pmos l=lmin w=wp
+mxor005 out a pu_l pu_l pmos l=lmin w=wp
+mxor006 out b pd_l pd_l nmos l=lmin w=wn
+mxor007 pd_l a vss vss nmos l=lmin w=wn
+mxor008 pu_r b vdd vdd pmos l=lmin w=wp
+mxor009 out not_a pu_r pu_r pmos l=lmin w=wp
+mxor010 out not_b pd_r pd_r nmos l=lmin w=wn
+mxor011 pd_r not_a vss vss nmos l=lmin w=wn
+.ends xor_2
+
+.subckt and_2 a b vdd vss out
+xlogic000 a b vdd vss tmp nand_2
+xlogic001 tmp out vdd vss inv
+.ends and_2
+
+.subckt and_3 a b c vdd vss out
+xlogic000 a b vdd vss tmp and_2
+xlogic001 tmp c vdd vss out and_2
+.ends and_3 
+
+.subckt and_4 a b c d vdd vss out
+xlogic000 a b c vdd vss tmp and_3
+xlogic001 tmp d vdd vss out and_2
+.ends and_4 
+
+.subckt and_5 a b c d e vdd vss out
+xlogic000 a b c d vdd vss tmp and_4
+xlogic001 tmp e vdd vss out and_2
+.ends and_5
+
+.subckt or_2 a b vdd vss out
+xlogic000 a b vdd vss tmp nor_2
+xlogic001 tmp out vdd vss inv
+.ends or_2
+
+.subckt or_3 a b c vdd vss out
+xlogic000 a b vdd vss tmp or_2
+xlogic001 tmp c vdd vss out or_2
+.ends or_3
+
+.subckt or_4 a b c d vdd vss out
+xlogic000 a b c vdd vss tmp or_3
+xlogic001 tmp d vdd vss out or_2
+.ends or_3
+
+.subckt or_5 a b c d e vdd vss out
+xlogic000 a b c d vdd vss tmp or_4
+xlogic001 tmp e vdd vss out or_2
+.ends or_5
+
+.subckt lookahead a_0 a_1 a_2 a_3 b_0 b_1 b_2 b_3 c_in vdd vss s_0 s_1 s_2 s_3 c_1 c_2 c_3 c_out
+xlogic000 c_in p_0 vdd vss s_0 xor_2
+xlogic001 a_0 b_0 vdd vss p_0 xor_2
+xlogic002 a_0 b_0 vdd vss g_0 and_2
+xlogic003 p_0 c_in vdd vss tmp_0 and_2
+xlogic004 g_0 tmp_0 vdd vss c_1 or_2
+xlogic005 c_1 p_1 vdd vss s_1 xor_2
+xlogic006 a_1 b_1 vdd vss p_1 xor_2
+xlogic007 a_1 b_1 vdd vss g_1 and_2 
+xlogic008 p_1 g_0 vdd vss tmp_1 and_2
+xlogic009 p_1 p_0 c_in vdd vss tmp_2 and_3
+xlogic010 g_1 tmp_1 tmp_2 vdd vss c_2 or_3
+xlogic011 c_2 p_2 vdd vss s_2 xor_2
+xlogic012 a_2 b_2 vdd vss p_2 xor_2
+xlogic013 a_2 b_2 vdd vss g_2 and_2
+xlogic014 p_2 g_1 vdd vss tmp_3 and_2
+xlogic015 p_2 p_1 g_0 vdd vss tmp_4 and_3
+xlogic016 p_2 p_1 p_0 c_in vdd vss tmp_5 and_4
+xlogic017 g_2 tmp_3 tmp_4 tmp_5 vdd vss c_3 or_4
+xlogic018 c_3 p_3 vdd vss s_3 xor_2
+xlogic019 a_3 b_3 vdd vss p_3 xor_2
+xlogic020 a_3 b_3 vdd vss g_3 and_2
+xlogic021 p_3 g_2 vdd vss tmp_6 and_2
+xlogic022 p_3 p_2 g_1 vdd vss tmp_7 and_3
+xlogic023 p_3 p_2 p_1 g_0 vdd vss tmp_8 and_4
+xlogic024 p_3 p_2 p_1 p_0 c_in vdd vss tmp_9 and_5
+xlogic025 g_3 tmp_6 tmp_7 tmp_8 tmp_9 vdd vss c_out or_5
+.ends lookahead
+
+.subckt fan_in_cell in out vdd vss
+xinv000 in tmp vdd vss inv_x4
+xinv001 tmp out vdd vss inv_x4
+.ends fan_in_cell
+
+.subckt fan_in in_0 in_1 in_2 in_3 out_0 out_1 out_2 out_3 vdd vss
+xcell000 in_0 out_0 vdd vss fan_in_cell
+xcell001 in_1 out_1 vdd vss fan_in_cell
+xcell002 in_2 out_2 vdd vss fan_in_cell
+xcell003 in_3 out_3 vdd vss fan_in_cell
+.ends fan_in
+
+.subckt fan_out in out vdd vss
+xinv000 in out vdd vss inv
+xinv001 in out vdd vss inv
+xinv002 in out vdd vss inv
+xinv003 in out vdd vss inv
+.ends fan_out
+
+xdelay_a a_in_0 a_in_1 a_in_2 a_in_3 a_out_0 a_out_1 a_out_2 a_out_3 vdd_aux vss fan_in
+xdelay_b b_in_0 b_in_1 b_in_2 b_in_3 b_out_0 b_out_1 b_out_2 b_out_3 vdd_aux vss fan_in
+xdelay_c c_in c_in_0 vdd_aux vss fan_in_cell
+xdus a_out_0 a_out_1 a_out_2 a_out_3 b_out_0 b_out_1 b_out_2 b_out_3 c_in_0 vdd vss s_out_0 s_out_1 s_out_2 s_out_3 c_1 c_2 c_3 c_out lookahead
+xcharge_s_0 s_out_0 dummy_0 vdd_aux vss fan_out
+xcharge_s_1 s_out_1 dummy_1 vdd_aux vss fan_out
+xcharge_s_2 s_out_2 dummy_2 vdd_aux vss fan_out
+xcharge_s_3 s_out_3 dummy_3 vdd_aux vss fan_out
+
+v_a_in_0 a_in_0 0 pwl(0 1 6e-9 1 6.01e-9 0 9e-9 0 9.01e-9 1)
+v_a_in_1 a_in_1 0 pwl(0 1 6e-9 1 6.01e-9 1)
+v_a_in_2 a_in_2 0 pwl(0 1 6e-9 1 6.01e-9 1)
+v_a_in_3 a_in_3 0 pwl(0 1 6e-9 1 6.01e-9 0)
+v_b_in_0 b_in_0 0 pwl(0 0 6e-9 0 6.01e-9 0)
+v_b_in_1 b_in_1 0 pwl(0 0 6e-9 0 6.01e-9 0)
+v_b_in_2 b_in_2 0 pwl(0 0 6e-9 0 6.01e-9 0)
+v_b_in_3 b_in_3 0 pwl(0 0 6e-9 0 6.01e-9 0)
+v_c_in c_in 0 pwl(0 1 3e-9 1 3.01e-9 0 6e-9 1 6e-9 1)
+
+v_supply_0 vdd 0 dc 1
+v_supply_1 vdd_aux 0 dc 1
+v_supply_2 vss 0 dc 0
+
+.control
+run
+tran 1e-10 10e-9
+meas tran wcp trig v(c_in) val={0.5*vdd} fall=1 targ v(c_out) val={0.5*vdd} fall=1
+meas tran wsp trig v(a_in_0) val={0.5*vdd} rise=1 targ v(s_out_3) val={0.5*vdd} rise=1 td=7e-9
+print v(wcp) >> core/carry-lookahead/logs/raw/ideal_delays.log
+print v(wsp) >> core/carry-lookahead/logs/raw/ideal_delays.log
+.endc
