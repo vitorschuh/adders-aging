@@ -1,0 +1,124 @@
+ripple-carry trap impact after 1e-2 seconds under stress
+
+.include models/45nm_HP_NBTI.model
+.param lmin = 45n
+.param wn = '3.2*lmin'
+.param wp = '2.5*wn'
+.param wn_x4 = '4*wn'
+.param wp_x4 = '4*wp'
+.param duty_factor = 0.5
+.param stress_time = 1e-2
+.param stress_voltage = 1
+
+.subckt inv a not_a vdd vss
+minv000 not_a a vdd vdd pmos l=lmin w=wp tstr=stress_time vstr=stress_voltage duty=duty_factor
+minv001 not_a a vss vss nmos l=lmin w=wn tstr=stress_time vstr=stress_voltage duty=duty_factor
+.ends inv
+
+.subckt inv_x4 a not_a vdd vss
+minv000 not_a a vdd vdd pmos l=lmin w=wp_x4 
+minv001 not_a a vss vss nmos l=lmin w=wn_x4
+.ends inv_x4
+
+.subckt and_2 a b vdd vss out
+mand000 tmp a vdd vdd pmos l=lmin w=wp tstr=stress_time vstr=stress_voltage duty=duty_factor
+mand001 tmp b vdd vdd pmos l=lmin w=wp tstr=stress_time vstr=stress_voltage duty=duty_factor
+mand002 tmp a pd pd nmos l=lmin w=wn tstr=stress_time vstr=stress_voltage duty=duty_factor
+mand003 pd b vss vss nmos l=lmin w=wn tstr=stress_time vstr=stress_voltage duty=duty_factor
+mand004 out tmp vdd vdd pmos l=lmin w=wp tstr=stress_time vstr=stress_voltage duty=duty_factor
+mand005 out tmp vss vss nmos l=lmin w=wp tstr=stress_time vstr=stress_voltage duty=duty_factor
+.ends and_2
+
+.subckt or_2 a b vdd vss out
+mor000 pu a vdd vdd pmos l=lmin w=wp tstr=stress_time vstr=stress_voltage duty=duty_factor
+mor001 tmp b pu pu pmos l=lmin w=wp tstr=stress_time vstr=stress_voltage duty=duty_factor
+mor002 tmp a vss vss nmos l=lmin w=wn tstr=stress_time vstr=stress_voltage duty=duty_factor
+mor003 tmp b vss vss nmos l=lmin w=wn tstr=stress_time vstr=stress_voltage duty=duty_factor
+mor004 out tmp vdd vdd pmos l=lmin w=wp tstr=stress_time vstr=stress_voltage duty=duty_factor
+mor005 out tmp vss vss nmos l=lmin w=wn tstr=stress_time vstr=stress_voltage duty=duty_factor
+.ends or_2
+
+.subckt xor_2 a b vdd vss out
+mxor000 not_a a vdd vdd pmos l=lmin w=wp tstr=stress_time vstr=stress_voltage duty=duty_factor
+mxor001 not_a a vss vss nmos l=lmin w=wn tstr=stress_time vstr=stress_voltage duty=duty_factor
+mxor002 not_b b vdd vdd pmos l=lmin w=wp tstr=stress_time vstr=stress_voltage duty=duty_factor
+mxor003 not_b b vss vss nmos l=lmin w=wn tstr=stress_time vstr=stress_voltage duty=duty_factor
+mxor004 pu_l not_b vdd vdd pmos l=lmin w=wp tstr=stress_time vstr=stress_voltage duty=duty_factor
+mxor005 out a pu_l pu_l pmos l=lmin w=wp tstr=stress_time vstr=stress_voltage duty=duty_factor
+mxor006 out b pd_l pd_l nmos l=lmin w=wn tstr=stress_time vstr=stress_voltage duty=duty_factor
+mxor007 pd_l a vss vss nmos l=lmin w=wn tstr=stress_time vstr=stress_voltage duty=duty_factor
+mxor008 pu_r b vdd vdd pmos l=lmin w=wp tstr=stress_time vstr=stress_voltage duty=duty_factor
+mxor009 out not_a pu_r pu_r pmos l=lmin w=wp tstr=stress_time vstr=stress_voltage duty=duty_factor
+mxor010 out not_b pd_r pd_r nmos l=lmin w=wn tstr=stress_time vstr=stress_voltage duty=duty_factor
+mxor011 pd_r not_a vss vss nmos l=lmin w=wn tstr=stress_time vstr=stress_voltage duty=duty_factor
+.ends xor_2
+
+.subckt half_adder a b vdd vss s c_out
+xlogic000 a b vdd vss c_out and_2
+xlogic001 a b vdd vss s xor_2
+.ends half_adder
+
+.subckt full_adder a b c_in vdd vss s c_out
+xlogic000 a b vdd vss tmp_1 xor_2
+xlogic001 tmp_1 c_in vdd vss s xor_2
+xlogic002 c_in tmp_1 vdd vss tmp_2 and_2
+xlogic003 a b vdd vss tmp_3 and_2
+xlogic004 tmp_2 tmp_3 vdd vss c_out or_2
+.ends full_adder
+
+.subckt 4_bit_adder a_0 a_1 a_2 a_3 b_0 b_1 b_2 b_3 c_in vdd vss s_0 s_1 s_2 s_3 c_out
+xaddr000 a_0, b_0, c_in, vdd, vss, s_0, c_1 full_adder
+xaddr001 a_1, b_1, c_1, vdd, vss, s_1, c_2 full_adder
+xaddr002 a_2, b_2, c_2, vdd, vss, s_2, c_3 full_adder
+xaddr003 a_3, b_3, c_3, vdd, vss, s_3, c_out full_adder
+.ends 4_bit_adder
+
+.subckt fan_in_cell in out vdd vss
+xinv000 in tmp vdd vss inv_x4
+xinv001 tmp out vdd vss inv_x4
+.ends fan_in_cell
+
+.subckt fan_in in_0 in_1 in_2 in_3 out_0 out_1 out_2 out_3 vdd vss
+xcell000 in_0 out_0 vdd vss fan_in_cell
+xcell001 in_1 out_1 vdd vss fan_in_cell
+xcell002 in_2 out_2 vdd vss fan_in_cell
+xcell003 in_3 out_3 vdd vss fan_in_cell
+.ends fan_in
+
+.subckt fan_out in out vdd vss
+xinv000 in out vdd vss inv
+xinv001 in out vdd vss inv
+xinv002 in out vdd vss inv
+xinv003 in out vdd vss inv
+.ends fan_out
+
+xdelay_a a_in_0 a_in_1 a_in_2 a_in_3 a_out_0 a_out_1 a_out_2 a_out_3 vdd_aux vss fan_in
+xdelay_b b_in_0 b_in_1 b_in_2 b_in_3 b_out_0 b_out_1 b_out_2 b_out_3 vdd_aux vss fan_in
+xdut a_out_0 a_out_1 a_out_2 a_out_3 b_out_0 b_out_1 b_out_2 b_out_3 c_in vdd vss s_out_0 s_out_1 s_out_2 s_out_3 c_out 4_bit_adder
+xcharge_s_0 s_out_0 dummy_0 vdd_aux vss fan_out
+xcharge_s_1 s_out_1 dummy_1 vdd_aux vss fan_out
+xcharge_s_2 s_out_2 dummy_2 vdd_aux vss fan_out
+xcharge_s_3 s_out_3 dummy_3 vdd_aux vss fan_out
+
+v_a_in_0 a_in_0 0 pwl(0 0 6e-9 0 6.01e-9 0 9e-9 0 9.01e-9 1)
+v_a_in_1 a_in_1 0 pwl(0 0 6e-9 0 6.01e-9 1)
+v_a_in_2 a_in_2 0 pwl(0 0 6e-9 0 6.01e-9 1)
+v_a_in_3 a_in_3 0 pwl(0 0 6e-9 0 6.01e-9 0)
+v_b_in_0 b_in_0 0 pwl(0 1 6e-9 1 6.01e-9 0)
+v_b_in_1 b_in_1 0 pwl(0 1 6e-9 1 6.01e-9 0)
+v_b_in_2 b_in_2 0 pwl(0 1 6e-9 1 6.01e-9 0)
+v_b_in_3 b_in_3 0 pwl(0 1 6e-9 1 6.01e-9 0)
+v_c_in c_in 0 pwl(0 0 3e-9 0 3.01e-9 1 6e-9 1 6e-9 1)
+
+v_supply_0 vdd 0 dc 1
+v_supply_1 vdd_aux 0 dc 1
+v_supply_2 vss 0 dc 0
+
+.control
+run
+tran 1e-10 10e-9
+meas tran wcp trig v(c_in) val={0.5*vdd} rise=1 targ v(c_out) val={0.5*vdd} rise=1
+meas tran wsp trig v(a_in_0) val={0.5*vdd} rise=1 targ v(s_out_3) val={0.5*vdd} rise=1 td=7e-9
+print v(wcp) >> core/ripple-carry/logs/raw/1e-2_delays.log
+print v(wsp) >> core/ripple-carry/logs/raw/1e-2_delays.log
+.endc
